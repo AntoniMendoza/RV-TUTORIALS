@@ -1,0 +1,67 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class AbirPuerta : MonoBehaviour
+{
+    [SerializeField] private Transform EjeDeGiro;
+    private float PosicionY;
+    private float Distancia;
+    private float velocidadAngular = 0f; // Variable para medir la velocidad angular
+
+    private bool isRotatingX = false;
+    private float currentRotationX = 0f; // Mantener un seguimiento del ángulo de rotación en X
+
+    private bool ventanaAbierta = false; // Variable para rastrear si la ventana está abierta
+    private Rigidbody rb;
+
+    void Start()
+    {
+        PosicionY = transform.localPosition.y;
+        Distancia = (EjeDeGiro.position - transform.position).magnitude;
+        rb = GetComponent<Rigidbody>();
+    }
+
+    void Update()
+    {
+        transform.localPosition = new Vector3(transform.localPosition.x, PosicionY, transform.localPosition.z);
+        transform.LookAt(EjeDeGiro, EjeDeGiro.up);
+        float nuevaDistancia = (EjeDeGiro.position - transform.position).magnitude;
+        transform.position += (nuevaDistancia - Distancia) * transform.forward;
+
+        float anguloY = transform.localEulerAngles.y;
+        float anguloX = transform.localEulerAngles.x;
+
+        if (anguloY > 0)
+        {
+            rb.angularVelocity = Vector3.zero; // Detiene la rotación en Y
+        }
+
+        if (isRotatingX)
+        {
+            float rotationSpeedX = 10f; // Aumenta la velocidad de reclinación en eje X
+
+            // Calcula el incremento de rotación en X y aplica la rotación suavemente
+            float rotationIncrement = rotationSpeedX * Time.deltaTime;
+            if (currentRotationX >= -90f) // Limita el ángulo máximo de rotación en X (ahora negativo)
+            {
+                currentRotationX -= rotationIncrement; // Cambia el signo para que gire en la dirección opuesta
+                float smoothRotationX = Mathf.Lerp(0f, currentRotationX, Time.deltaTime);
+                transform.RotateAround(EjeDeGiro.position, Vector3.right, smoothRotationX);
+
+                // Calcula la velocidad angular (grados por segundo)
+                velocidadAngular = -currentRotationX / Time.deltaTime;
+                Debug.Log("Velocidad Angular: " + velocidadAngular);
+
+                // Si la ventana ha alcanzado los -90 grados, ciérrala
+                if (Mathf.Abs(currentRotationX) >= 90f)
+                {
+                    isRotatingX = false;
+                    ventanaAbierta = true;
+                    currentRotationX = -90f;
+                    rb.isKinematic = false; // Desactiva la propiedad kinemática al cerrar la ventana
+                }
+            }
+        }
+    }
+}
